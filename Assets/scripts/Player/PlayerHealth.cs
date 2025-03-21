@@ -7,38 +7,39 @@ public class PlayerHealth : MonoBehaviour
 {
     public int health = 100;
     private Animator animator;
-    private bool isDead = false; // Para evitar múltiples llamadas a Die()
+    private bool isDead = false;
 
-    private UIManager uiManager; // Referencia al UIManager
+    private UIManager uiManager;
+
+    [Header("Inmortalidad")]
+    public bool isImmortal = false; // Nueva variable para controlar si el jugador es inmortal
 
     [Header("Efecto de Daño")]
-    public Renderer playerRenderer; // Renderer para cambiar el color del jugador
-    public Color damageColor = Color.red; // Color que tomará al recibir daño
-    public float flashDuration = 0.2f; // Duración del parpadeo
+    public Renderer playerRenderer;
+    public Color damageColor = Color.red;
+    public float flashDuration = 0.2f;
 
     [Header("Audio Settings")]
-    public AudioClip damageSound; // Sonido al recibir daño
-    public AudioSource audioSource;       // Referencia al AudioSource
+    public AudioClip damageSound;
+    public AudioSource audioSource;
 
-    private Color originalColor; // Color original del jugador
+    private Color originalColor;
 
     void Start()
     {
-
         if (audioSource == null)
         {
             audioSource = GetComponent<AudioSource>();
         }
 
-        // Verificar si el AudioSource está configurado correctamente
         if (audioSource == null)
         {
             Debug.LogError("BaseEnemy: No se encontró un AudioSource en el enemigo.");
         }
-        animator = GetComponent<Animator>(); // Obtener la referencia al Animator
-        uiManager = FindObjectOfType<UIManager>(); // Obtener la referencia al UIManager
 
-        // Guardar el color original del jugador
+        animator = GetComponent<Animator>();
+        uiManager = FindObjectOfType<UIManager>();
+
         if (playerRenderer == null)
         {
             playerRenderer = GetComponentInChildren<Renderer>();
@@ -53,58 +54,69 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    void Update()
+    {
+        // Alternar inmortalidad con la tecla U
+        if (Input.GetKeyDown(KeyCode.U))
+        {
+            isImmortal = !isImmortal;
+            Debug.Log("Modo Inmortal: " + (isImmortal ? "Activado" : "Desactivado"));
+        }
+    }
+
     public void PlaySound(AudioClip clip)
     {
         if (clip != null && audioSource != null)
         {
-            audioSource.PlayOneShot(clip); // Reproduce el sonido sin interrumpir otros
+            audioSource.PlayOneShot(clip);
         }
     }
-    // Método para recibir daño
+
     public void TakeDamage(int damage)
     {
-        if (isDead) return; // No recibir más daño si ya está muerto
+        if (isDead) return;
 
-        PlaySound(damageSound); // Sonido al recibir daño
-        health -= damage;
-        Debug.Log("Jugador recibió daño. Salud restante: " + health);
+        PlaySound(damageSound);
 
-        // Activar el efecto de parpadeo
+        // Mostrar el daño aunque sea inmortal
+        Debug.Log("Jugador recibió daño. Daño: " + damage);
+
+        // Solo reducir salud si NO es inmortal
+        if (!isImmortal)
+        {
+            health -= damage;
+            Debug.Log("Salud restante: " + health);
+        }
+
         StartCoroutine(FlashDamageEffect());
 
-        if (health <= 0)
+        if (health <= 0 && !isImmortal)
         {
             Die();
         }
     }
 
-    // Método para manejar la muerte del jugador
     private void Die()
     {
-        if (isDead) return; // Evitar múltiples llamadas a Die()
+        if (isDead) return;
 
-        isDead = true; // Establecer estado de muerte
+        isDead = true;
 
         Debug.Log("El jugador ha muerto");
 
-        // Activar la animación de muerte
         animator.SetTrigger("Die");
-
-        // Desactivar el movimiento
         GetComponent<PlayerMovement>().enabled = false;
 
-        // Llamar al UIManager para mostrar la pantalla de Game Over
         uiManager.ShowGameOver();
     }
 
-    // Efecto de parpadeo rojo al recibir daño
     private IEnumerator FlashDamageEffect()
     {
         if (playerRenderer != null)
         {
-            playerRenderer.material.color = damageColor; // Cambiar al color de daño
-            yield return new WaitForSeconds(flashDuration); // Esperar
-            playerRenderer.material.color = originalColor; // Restaurar el color original
+            playerRenderer.material.color = damageColor;
+            yield return new WaitForSeconds(flashDuration);
+            playerRenderer.material.color = originalColor;
         }
     }
 }
