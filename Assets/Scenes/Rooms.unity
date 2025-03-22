@@ -14052,7 +14052,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bf2138f3d81d41c4797c98055cc99709, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  enemyPrefab: {fileID: 143718183941025757, guid: 9bf15284c2eafa24ab6c0e483b3f3fcc, type: 3}
+  enemyPrefab: {fileID: 7408362817655021929, guid: b2757ba43b0dd6844aab3de52cff1f81, type: 3}
   spawnPoint: {fileID: 95747546}
   playerSpawnPoint: {fileID: 9221525}
   funcionDeDificultad: 0
@@ -53421,7 +53421,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 508636756008481024, guid: ac037391548415f40a0531c814c56e12, type: 3}
       propertyPath: speed
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 2737623764032086508, guid: ac037391548415f40a0531c814c56e12, type: 3}
       propertyPath: Priority

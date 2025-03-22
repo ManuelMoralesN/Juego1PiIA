@@ -14,11 +14,11 @@ public class Projectile : MonoBehaviour
         if (((1 << collision.gameObject.layer) & destructibleLayer) != 0)
         {
             // Verificar si el objeto colisionado es un enemigo antes de destruir
-            BaseEnemy enemy = collision.gameObject.GetComponent<BaseEnemy>();
+            EnemyBase enemy = collision.gameObject.GetComponent<EnemyBase>();
             if (enemy != null)
             {
                 // Infligir daño al enemigo en lugar de destruirlo
-                enemy.TakeDamage(damage);
+                enemy.RecibirDaño(damage);
             }
             else
             {

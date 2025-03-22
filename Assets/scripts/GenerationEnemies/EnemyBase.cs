@@ -36,36 +36,34 @@ public class EnemyBase : MonoBehaviour
     private float nextAttackTime = 0f;
     private Transform target;
     private NavMeshAgent agent; // Componente para la navegación con NavMesh
+    private Animator animator;  // Referencia al Animator para animaciones
 
     void Start()
     {
         currentHP = maxHP;
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null)
-        {
             target = playerObj.transform;
-        }
         else
-        {
             Debug.LogWarning("No se encontró el objeto con tag 'Player'.");
-        }
 
         if (rend == null)
         {
             // Busca un Renderer en el objeto o sus hijos
             rend = GetComponentInChildren<Renderer>();
             if (rend == null)
-            {
                 Debug.LogWarning("No se encontró un Renderer en el enemigo.");
-            }
         }
 
         // Intentar obtener el componente NavMeshAgent
         agent = GetComponent<NavMeshAgent>();
         if (agent != null)
-        {
             agent.speed = moveSpeed;
-        }
+
+        // Obtener el Animator (se espera que esté en el mismo GameObject o en un hijo)
+        animator = GetComponent<Animator>();
+        if (animator == null)
+            Debug.LogWarning("No se encontró un Animator en el enemigo.");
     }
 
     void Update()
@@ -88,17 +86,14 @@ public class EnemyBase : MonoBehaviour
         currentHP = maxHP;
 
         if (agent != null)
-        {
             agent.speed = moveSpeed;
-        }
     }
 
     /// <summary>
     /// Establece la dificultad calculada y cambia el color según su valor.
-    /// Por ejemplo:
-    /// - Si la dificultad es mayor a 100, se asigna color rojo.
-    /// - Si es mayor a 50, se asigna amarillo.
-    /// - Si es 50 o menor, se asigna verde.
+    /// - Mayor a 100: rojo
+    /// - Mayor a 50: amarillo
+    /// - 50 o menor: verde
     /// </summary>
     public void SetDificultad(float valor)
     {
@@ -119,21 +114,26 @@ public class EnemyBase : MonoBehaviour
     /// Movimiento del enemigo según su tipo:
     /// - 0: No se mueve.
     /// - 1: Persigue al jugador.
-    /// - 2: Huye del jugador usando NavMesh (si está disponible) para evitar obstáculos.
+    /// - 2: Huye del jugador usando NavMesh (si está disponible).
+    /// Además, activa la animación de correr si el enemigo se está moviendo.
     /// </summary>
     void Mover()
     {
         if (target == null) return;
 
+        bool isMoving = false;
+
         switch (tipoMovimiento)
         {
             case 0: // No se mueve
+                isMoving = false;
                 break;
             case 1: // Persigue al jugador
                 {
                     if (agent != null)
                     {
                         agent.SetDestination(target.position);
+                        isMoving = agent.velocity.magnitude > 0.1f;
                     }
                     else
                     {
@@ -144,6 +144,7 @@ public class EnemyBase : MonoBehaviour
                             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
                         }
                         transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                        isMoving = true;
                     }
                 }
                 break;
@@ -156,11 +157,11 @@ public class EnemyBase : MonoBehaviour
                         // Definir una posición deseada a 10 unidades de distancia
                         Vector3 desiredPosition = transform.position + fleeDirection * 10f;
                         NavMeshHit hit;
-                        // Buscar una posición válida en el NavMesh
                         if (NavMesh.SamplePosition(desiredPosition, out hit, 10f, NavMesh.AllAreas))
                         {
                             agent.SetDestination(hit.position);
                         }
+                        isMoving = agent.velocity.magnitude > 0.1f;
                     }
                     else
                     {
@@ -171,16 +172,22 @@ public class EnemyBase : MonoBehaviour
                             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
                         }
                         transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                        isMoving = true;
                     }
                 }
                 break;
             default:
                 break;
         }
+
+        // Activar la animación de correr si el enemigo se está moviendo
+        if (animator != null)
+            animator.SetBool("IsRunning", isMoving);
     }
 
     /// <summary>
     /// Ataca al jugador si está en rango, infligiendo daño y aplicando efectos únicos.
+    /// Además, activa la animación de ataque.
     /// </summary>
     void Atacar()
     {
@@ -194,6 +201,10 @@ public class EnemyBase : MonoBehaviour
             PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
+                // Activar animación de ataque
+                if (animator != null)
+                    animator.SetTrigger("AreaAttackTriggerA");
+
                 playerHealth.TakeDamage((int)attackPower);
                 Debug.Log("Enemigo ataca al jugador, causando " + attackPower + " de daño.");
 
@@ -212,10 +223,10 @@ public class EnemyBase : MonoBehaviour
     public void RecibirDaño(float daño)
     {
         currentHP -= daño;
+        Debug.Log("Enemigo ha recibido " + daño + " puntos de daño. Vida restante: " + currentHP);
+
         if (currentHP <= 0)
-        {
             Morir();
-        }
     }
 
     /// <summary>

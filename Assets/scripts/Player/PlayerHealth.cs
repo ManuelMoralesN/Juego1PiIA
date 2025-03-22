@@ -119,7 +119,7 @@ public class PlayerHealth : MonoBehaviour
                 break;
             case UniqueEffect.Stun:
                 Debug.Log("Jugador aturdido!");
-                // Implementar efecto stun aquí
+                 StartCoroutine(StunCoroutine(1f)); 
                 break;
             default:
                 break;
@@ -147,6 +147,20 @@ public class PlayerHealth : MonoBehaviour
                 }
             }
             elapsed += 1f;
+        }
+    }
+
+    private IEnumerator StunCoroutine(float duration)
+    {
+        PlayerMovement pm = GetComponent<PlayerMovement>();
+        if (pm != null)
+        {
+            pm.enabled = false;
+        }
+        yield return new WaitForSeconds(duration);
+        if (pm != null)
+        {
+            pm.enabled = true;
         }
     }
 
