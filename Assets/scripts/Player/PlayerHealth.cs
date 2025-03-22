@@ -8,11 +8,12 @@ public class PlayerHealth : MonoBehaviour
     public int health = 100;
     private Animator animator;
     private bool isDead = false;
-
     private UIManager uiManager;
 
     [Header("Inmortalidad")]
-    public bool isImmortal = false; // Nueva variable para controlar si el jugador es inmortal
+    public bool isImmortal = false;
+    public float invulnDuration = 1f;
+    private bool isInvulnerable = false;
 
     [Header("Efecto de Daño")]
     public Renderer playerRenderer;
@@ -31,12 +32,10 @@ public class PlayerHealth : MonoBehaviour
         {
             audioSource = GetComponent<AudioSource>();
         }
-
         if (audioSource == null)
         {
-            Debug.LogError("BaseEnemy: No se encontró un AudioSource en el enemigo.");
+            Debug.LogError("PlayerHealth: No se encontró un AudioSource.");
         }
-
         animator = GetComponent<Animator>();
         uiManager = FindObjectOfType<UIManager>();
 
@@ -56,7 +55,6 @@ public class PlayerHealth : MonoBehaviour
 
     void Update()
     {
-        // Alternar inmortalidad con la tecla U
         if (Input.GetKeyDown(KeyCode.U))
         {
             isImmortal = !isImmortal;
@@ -75,39 +73,75 @@ public class PlayerHealth : MonoBehaviour
     public void TakeDamage(int damage)
     {
         if (isDead) return;
+        if (isImmortal || isInvulnerable) return;
 
         PlaySound(damageSound);
-
-        // Mostrar el daño aunque sea inmortal
         Debug.Log("Jugador recibió daño. Daño: " + damage);
-
-        // Solo reducir salud si NO es inmortal
-        if (!isImmortal)
-        {
-            health -= damage;
-            Debug.Log("Salud restante: " + health);
-        }
-
+        health -= damage;
+        Debug.Log("Salud restante: " + health);
+        StartCoroutine(InvulnerabilityCoroutine(invulnDuration));
         StartCoroutine(FlashDamageEffect());
 
-        if (health <= 0 && !isImmortal)
+        if (health <= 0)
         {
             Die();
         }
     }
 
-    private void Die()
+    private IEnumerator InvulnerabilityCoroutine(float duration)
     {
-        if (isDead) return;
+        isInvulnerable = true;
+        yield return new WaitForSeconds(duration);
+        isInvulnerable = false;
+    }
 
-        isDead = true;
+    public void ApplyUniqueEffect(UniqueEffect effect)
+    {
+        switch (effect)
+        {
+            case UniqueEffect.Slow:
+                Debug.Log("Jugador ralentizado!");
+                PlayerMovement pm = GetComponent<PlayerMovement>();
+                if (pm != null)
+                {
+                    pm.ApplySlow(0.5f, 3f);
+                }
+                break;
+            case UniqueEffect.Burn:
+                Debug.Log("Jugador en quemadura!");
+                StartCoroutine(BurnCoroutine(5f, 3f));
+                break;
+            case UniqueEffect.Stun:
+                Debug.Log("Jugador aturdido!");
+                // Implementar efecto stun aquí
+                break;
+            default:
+                break;
+        }
+    }
 
-        Debug.Log("El jugador ha muerto");
-
-        animator.SetTrigger("Die");
-        GetComponent<PlayerMovement>().enabled = false;
-
-        uiManager.ShowGameOver();
+    private IEnumerator BurnCoroutine(float burnDamage, float duration)
+    {
+        while (isInvulnerable)
+        {
+            yield return null;
+        }
+        float elapsed = 0f;
+        while (elapsed < duration)
+        {
+            yield return new WaitForSeconds(1f);
+            if (!isDead)
+            {
+                health -= (int)burnDamage;
+                Debug.Log("Quemadura: se aplicaron " + burnDamage + " puntos de daño. Salud: " + health);
+                if (health <= 0)
+                {
+                    Die();
+                    yield break;
+                }
+            }
+            elapsed += 1f;
+        }
     }
 
     private IEnumerator FlashDamageEffect()
@@ -116,6 +150,39 @@ public class PlayerHealth : MonoBehaviour
         {
             playerRenderer.material.color = damageColor;
             yield return new WaitForSeconds(flashDuration);
+            playerRenderer.material.color = originalColor;
+        }
+    }
+
+    private void Die()
+    {
+        if (isDead) return;
+        isDead = true;
+        Debug.Log("El jugador ha muerto");
+        animator.SetTrigger("Die");
+        GetComponent<PlayerMovement>().enabled = false;
+        uiManager.ShowGameOver();
+    }
+
+    /// <summary>
+    /// Reinicia el estado del jugador para que aparezca vivo.
+    /// </summary>
+    public void ResetPlayer()
+    {
+        isDead = false;
+        health = 100;
+        // Reactivar movimiento
+        PlayerMovement pm = GetComponent<PlayerMovement>();
+        if (pm != null)
+        {
+            pm.enabled = true;
+        }
+        // Reiniciar la animación a "Idle"
+        animator.ResetTrigger("Die");
+        animator.Play("Idle", 0, 0f); // Asegúrate de que "Idle" sea el nombre de la animación de reposo
+        // Restaurar color si fuera necesario
+        if (playerRenderer != null)
+        {
             playerRenderer.material.color = originalColor;
         }
     }

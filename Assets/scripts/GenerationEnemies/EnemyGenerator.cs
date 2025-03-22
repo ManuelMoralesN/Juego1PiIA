@@ -13,7 +13,7 @@ public class EnemyGenerator : MonoBehaviour
     public int funcionDeDificultad = 0; // Seleccionable en el editor: 0 a 4
     public KeyCode teclaReiniciar = KeyCode.I;
 
-    // Rangos para stats aleatorios (ajústalos según necesites)
+    // Rangos para stats aleatorios
     [Header("Rangos de Stats")]
     public Vector2 hpRange = new Vector2(10f, 100f);
     public Vector2 attackRange = new Vector2(5f, 30f);
@@ -52,10 +52,11 @@ public class EnemyGenerator : MonoBehaviour
             float atk = Random.Range(attackRange.x, attackRange.y);
             float rate = Random.Range(attackRateRange.x, attackRateRange.y);
             float speed = Random.Range(speedRange.x, speedRange.y);
-            int movimiento = Random.Range(0, 3);      // 0: quieto, 1: sigue al jugador, 2: se aleja
-            int efecto = Random.Range(0, 2);            // 0: sin efecto, 1: con efecto único
+            int movimiento = Random.Range(0, 3); // 0: quieto, 1: sigue, 2: huye
+            // Generar efecto aleatorio: se elige entre None (0), Slow (1), Burn (2) y Stun (3)
+            UniqueEffect effect = (UniqueEffect)Random.Range(0, 4);
 
-            enemy.InicializarStats(hp, atk, rate, speed, movimiento, efecto);
+            enemy.InicializarStats(hp, atk, rate, speed, movimiento, effect);
 
             // Calcular la dificultad según la función seleccionada
             float dificultad = CalcularDificultad(enemy);
@@ -68,30 +69,21 @@ public class EnemyGenerator : MonoBehaviour
         float hp = enemy.maxHP;
         float atk = enemy.attackPower;
         float rate = enemy.attackRate;
-        float extra = enemy.efectoUnico == 1 ? 10f : 0f; // Se añade si tiene efecto único
+        // Si tiene efecto, se añade un extra
+        float extra = enemy.uniqueEffect != UniqueEffect.None ? 10f : 0f;
 
         switch (funcionDeDificultad)
         {
             case 0:
-                // Versión 1: Dificultad = HP + AttackPower + 1.0f/AttackRate
                 return hp + atk + (1f / rate);
-
             case 1:
-                // Versión 2: Dificultad = HP + (AttackPower * 1.0f/AttackRate)
                 return hp + (atk * (1f / rate));
-
             case 2:
-                // Versión 3: Dificultad = HP + AttackPower*(1.0f/AttackRate) + (EfectoÚnico)
                 return hp + (atk * (1f / rate)) + extra;
-
             case 3:
-                // Versión 4: Dificultad = HP * AttackPower * (1.0f/AttackRate)
                 return hp * atk * (1f / rate);
-
             case 4:
-                // Función adicional: combinando raíces y extra
                 return Mathf.Sqrt(hp * atk) + (5f / rate) + extra;
-
             default:
                 return hp + atk;
         }
@@ -105,14 +97,20 @@ public class EnemyGenerator : MonoBehaviour
             Destroy(enemigoActual);
         }
 
-        // Reposicionar al jugador (si se encuentra)
+        // Reposicionar al jugador y reiniciar su estado
         GameObject player = GameObject.FindWithTag("Player");
         if (player != null && playerSpawnPoint != null)
         {
             player.transform.position = playerSpawnPoint.position;
+            PlayerHealth playerHealth = player.GetComponent<PlayerHealth>();
+            if (playerHealth != null)
+            {
+                playerHealth.ResetPlayer();
+            }
         }
 
         // Generar un nuevo enemigo
         GenerarEnemigo();
     }
+
 }
