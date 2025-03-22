@@ -8,11 +8,20 @@ public class EnemyGenerator : MonoBehaviour
     public Transform spawnPoint;
     public Transform playerSpawnPoint;
 
-    [Header("Configuración")]
-    [Range(0, 4)] public int funcionDeDificultad = 0; // Seleccionable en editor
+    [Header("Configuración de Dificultad")]
+    [Range(0, 4)]
+    public int funcionDeDificultad = 0; // Seleccionable en el editor: 0 a 4
     public KeyCode teclaReiniciar = KeyCode.I;
 
+    // Rangos para stats aleatorios (ajústalos según necesites)
+    [Header("Rangos de Stats")]
+    public Vector2 hpRange = new Vector2(10f, 100f);
+    public Vector2 attackRange = new Vector2(5f, 30f);
+    public Vector2 attackRateRange = new Vector2(0.2f, 2f);
+    public Vector2 speedRange = new Vector2(1f, 5f);
+
     private GameObject enemigoActual;
+    public GameObject CurrentEnemy { get { return enemigoActual; } }
 
     void Start()
     {
@@ -31,24 +40,24 @@ public class EnemyGenerator : MonoBehaviour
     {
         if (enemyPrefab == null || spawnPoint == null) return;
 
-        // Instanciar enemigo
+        // Instanciar enemigo en el punto de spawn
         enemigoActual = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
 
         EnemyBase enemy = enemigoActual.GetComponent<EnemyBase>();
 
         if (enemy != null)
         {
-            // Stats aleatorios (ajusta los rangos como quieras)
-            float hp = Random.Range(10f, 100f);
-            float atk = Random.Range(5f, 30f);
-            float rate = Random.Range(0.2f, 2f);
-            float speed = Random.Range(1f, 5f);
-            int movimiento = Random.Range(0, 3);
-            int efecto = Random.Range(0, 2); // Por ahora 0 = nada, 1 = ralentizar
+            // Generar stats aleatorios
+            float hp = Random.Range(hpRange.x, hpRange.y);
+            float atk = Random.Range(attackRange.x, attackRange.y);
+            float rate = Random.Range(attackRateRange.x, attackRateRange.y);
+            float speed = Random.Range(speedRange.x, speedRange.y);
+            int movimiento = Random.Range(0, 3);      // 0: quieto, 1: sigue al jugador, 2: se aleja
+            int efecto = Random.Range(0, 2);            // 0: sin efecto, 1: con efecto único
 
             enemy.InicializarStats(hp, atk, rate, speed, movimiento, efecto);
 
-            // Calcular dificultad
+            // Calcular la dificultad según la función seleccionada
             float dificultad = CalcularDificultad(enemy);
             enemy.SetDificultad(dificultad);
         }
@@ -59,46 +68,51 @@ public class EnemyGenerator : MonoBehaviour
         float hp = enemy.maxHP;
         float atk = enemy.attackPower;
         float rate = enemy.attackRate;
-        float extra = enemy.efectoUnico == 1 ? 10f : 0f;
+        float extra = enemy.efectoUnico == 1 ? 10f : 0f; // Se añade si tiene efecto único
 
         switch (funcionDeDificultad)
         {
             case 0:
-                return hp + atk + (1f / rate); // Como la versión 1
+                // Versión 1: Dificultad = HP + AttackPower + 1.0f/AttackRate
+                return hp + atk + (1f / rate);
 
             case 1:
-                return hp + atk * (1f / rate); // Como la versión 2
+                // Versión 2: Dificultad = HP + (AttackPower * 1.0f/AttackRate)
+                return hp + (atk * (1f / rate));
 
             case 2:
-                return hp + atk * (1f / rate) + extra; // Como la versión 3
+                // Versión 3: Dificultad = HP + AttackPower*(1.0f/AttackRate) + (EfectoÚnico)
+                return hp + (atk * (1f / rate)) + extra;
 
             case 3:
-                return hp * atk * (1f / rate); // Como la versión 4
+                // Versión 4: Dificultad = HP * AttackPower * (1.0f/AttackRate)
+                return hp * atk * (1f / rate);
 
             case 4:
-                return Mathf.Sqrt(hp * atk) + (5f / rate) + extra; // NUEVA función diferente
+                // Función adicional: combinando raíces y extra
+                return Mathf.Sqrt(hp * atk) + (5f / rate) + extra;
 
             default:
-                return hp + atk; // Simple fallback
+                return hp + atk;
         }
     }
 
     void Reiniciar()
     {
-        // Destruir enemigo actual
+        // Destruir el enemigo actual
         if (enemigoActual != null)
         {
             Destroy(enemigoActual);
         }
 
-        // Reposicionar al jugador
+        // Reposicionar al jugador (si se encuentra)
         GameObject player = GameObject.FindWithTag("Player");
         if (player != null && playerSpawnPoint != null)
         {
             player.transform.position = playerSpawnPoint.position;
         }
 
-        // Generar nuevo enemigo
+        // Generar un nuevo enemigo
         GenerarEnemigo();
     }
 }

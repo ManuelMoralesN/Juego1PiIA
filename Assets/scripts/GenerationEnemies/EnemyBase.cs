@@ -1,5 +1,6 @@
-using System.Collections;
 using UnityEngine;
+using System.Collections;
+using TMPro;
 
 public class EnemyBase : MonoBehaviour
 {
@@ -12,8 +13,8 @@ public class EnemyBase : MonoBehaviour
 
     [Header("Evaluación")]
     public float dificultadCalculada;
-    public int tipoMovimiento; // 0: quieto, 1: sigue al jugador, 2: escapa, etc.
-    public int efectoUnico; // 0: ninguno, 1: ralentiza, etc.
+    public int tipoMovimiento; // 0: quieto, 1: sigue al jugador, 2: se aleja
+    public int efectoUnico;    // 0: sin efecto, 1: con efecto (ej. ralentiza)
 
     [Header("Visual")]
     public Renderer rend;
@@ -23,10 +24,24 @@ public class EnemyBase : MonoBehaviour
     void Start()
     {
         currentHP = maxHP;
-        target = GameObject.FindWithTag("Player").transform;
+        GameObject playerObj = GameObject.FindWithTag("Player");
+        if (playerObj != null)
+        {
+            target = playerObj.transform;
+        }
+        else
+        {
+            Debug.LogWarning("No se encontró el objeto con tag 'Player'.");
+        }
 
         if (rend == null)
+        {
             rend = GetComponentInChildren<Renderer>();
+            if (rend == null)
+            {
+                Debug.LogWarning("No se encontró un Renderer en el enemigo.");
+            }
+        }
     }
 
     void Update()
@@ -34,6 +49,9 @@ public class EnemyBase : MonoBehaviour
         Mover();
     }
 
+    /// <summary>
+    /// Inicializa los stats del enemigo con los valores proporcionados.
+    /// </summary>
     public void InicializarStats(float hp, float atk, float rate, float speed, int movimiento, int efecto)
     {
         maxHP = hp;
@@ -45,6 +63,9 @@ public class EnemyBase : MonoBehaviour
         currentHP = maxHP;
     }
 
+    /// <summary>
+    /// Establece la dificultad calculada y cambia el color según su valor.
+    /// </summary>
     public void SetDificultad(float valor)
     {
         dificultadCalculada = valor;
@@ -60,6 +81,9 @@ public class EnemyBase : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Movimiento simple basado en el tipo asignado.
+    /// </summary>
     void Mover()
     {
         if (target == null) return;
@@ -83,6 +107,9 @@ public class EnemyBase : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Aplica daño al enemigo y verifica si debe morir.
+    /// </summary>
     public void RecibirDaño(float daño)
     {
         currentHP -= daño;
@@ -92,6 +119,9 @@ public class EnemyBase : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Método que destruye el objeto enemigo.
+    /// </summary>
     void Morir()
     {
         Destroy(gameObject);
