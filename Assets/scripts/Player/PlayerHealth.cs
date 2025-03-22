@@ -37,7 +37,13 @@ public class PlayerHealth : MonoBehaviour
             Debug.LogError("PlayerHealth: No se encontró un AudioSource.");
         }
         animator = GetComponent<Animator>();
+
+        // Intenta encontrar el UIManager en la escena
         uiManager = FindObjectOfType<UIManager>();
+        if(uiManager == null)
+        {
+            Debug.LogWarning("PlayerHealth: No se encontró UIManager en la escena.");
+        }
 
         if (playerRenderer == null)
         {
@@ -154,14 +160,14 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    private void Die()
+
+    public void Die()
     {
         if (isDead) return;
         isDead = true;
         Debug.Log("El jugador ha muerto");
         animator.SetTrigger("Die");
         GetComponent<PlayerMovement>().enabled = false;
-        uiManager.ShowGameOver();
     }
 
     /// <summary>
@@ -171,19 +177,11 @@ public class PlayerHealth : MonoBehaviour
     {
         isDead = false;
         health = 100;
-        // Reactivar movimiento
         PlayerMovement pm = GetComponent<PlayerMovement>();
         if (pm != null)
         {
             pm.enabled = true;
         }
-        // Reiniciar la animación a "Idle"
-        animator.ResetTrigger("Die");
-        animator.Play("Idle", 0, 0f); // Asegúrate de que "Idle" sea el nombre de la animación de reposo
-        // Restaurar color si fuera necesario
-        if (playerRenderer != null)
-        {
-            playerRenderer.material.color = originalColor;
-        }
+
     }
 }

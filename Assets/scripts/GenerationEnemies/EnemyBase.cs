@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.AI; // Necesario para usar NavMeshAgent
 
 // Enum para definir los efectos únicos disponibles
 public enum UniqueEffect
@@ -20,9 +21,8 @@ public class EnemyBase : MonoBehaviour
 
     [Header("Evaluación")]
     public float dificultadCalculada;
-    public int tipoMovimiento; // 0: quieto, 1: sigue al jugador, 2: se aleja
+    public int tipoMovimiento; // 0: quieto, 1: persigue, 2: huye
 
-    // Ahora usamos un enum para definir el efecto único
     [Header("Efecto Único")]
     public UniqueEffect uniqueEffect; // None, Slow, Burn, Stun, etc.
 
@@ -31,11 +31,11 @@ public class EnemyBase : MonoBehaviour
 
     [Header("Ataque")]
     public float attackRange = 2f; // Rango en el que el enemigo puede atacar
-    public float totalDamageInflicted = 0f;
+    public float totalDamageInflicted = 0f; // Acumula el daño total infligido
 
     private float nextAttackTime = 0f;
-
     private Transform target;
+    private NavMeshAgent agent; // Componente para la navegación con NavMesh
 
     void Start()
     {
@@ -52,11 +52,19 @@ public class EnemyBase : MonoBehaviour
 
         if (rend == null)
         {
+            // Busca un Renderer en el objeto o sus hijos
             rend = GetComponentInChildren<Renderer>();
             if (rend == null)
             {
                 Debug.LogWarning("No se encontró un Renderer en el enemigo.");
             }
+        }
+
+        // Intentar obtener el componente NavMeshAgent
+        agent = GetComponent<NavMeshAgent>();
+        if (agent != null)
+        {
+            agent.speed = moveSpeed;
         }
     }
 
@@ -67,7 +75,7 @@ public class EnemyBase : MonoBehaviour
     }
 
     /// <summary>
-    /// Inicializa los stats del enemigo con los valores proporcionados.
+    /// Inicializa los stats del enemigo.
     /// </summary>
     public void InicializarStats(float hp, float atk, float rate, float speed, int movimiento, UniqueEffect effect)
     {
@@ -78,19 +86,29 @@ public class EnemyBase : MonoBehaviour
         tipoMovimiento = movimiento;
         uniqueEffect = effect;
         currentHP = maxHP;
+
+        if (agent != null)
+        {
+            agent.speed = moveSpeed;
+        }
     }
 
     /// <summary>
     /// Establece la dificultad calculada y cambia el color según su valor.
+    /// Por ejemplo:
+    /// - Si la dificultad es mayor a 100, se asigna color rojo.
+    /// - Si es mayor a 50, se asigna amarillo.
+    /// - Si es 50 o menor, se asigna verde.
     /// </summary>
     public void SetDificultad(float valor)
     {
         dificultadCalculada = valor;
+        Debug.Log("Dificultad calculada: " + valor);
         if (rend != null)
         {
-            if (valor > 50f)
+            if (valor > 100f)
                 rend.material.color = Color.red;
-            else if (valor > 25f)
+            else if (valor > 50f)
                 rend.material.color = Color.yellow;
             else
                 rend.material.color = Color.green;
@@ -98,7 +116,10 @@ public class EnemyBase : MonoBehaviour
     }
 
     /// <summary>
-    /// Movimiento simple basado en el tipo asignado.
+    /// Movimiento del enemigo según su tipo:
+    /// - 0: No se mueve.
+    /// - 1: Persigue al jugador.
+    /// - 2: Huye del jugador usando NavMesh (si está disponible) para evitar obstáculos.
     /// </summary>
     void Mover()
     {
@@ -108,26 +129,49 @@ public class EnemyBase : MonoBehaviour
         {
             case 0: // No se mueve
                 break;
-            case 1: // Se acerca al jugador
+            case 1: // Persigue al jugador
                 {
-                    Vector3 direction = (target.position - transform.position).normalized;
-                    if (direction != Vector3.zero)
+                    if (agent != null)
                     {
-                        Quaternion targetRotation = Quaternion.LookRotation(direction);
-                        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
+                        agent.SetDestination(target.position);
                     }
-                    transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                    else
+                    {
+                        Vector3 direction = (target.position - transform.position).normalized;
+                        if (direction != Vector3.zero)
+                        {
+                            Quaternion targetRotation = Quaternion.LookRotation(direction);
+                            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
+                        }
+                        transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                    }
                 }
                 break;
-            case 2: // Se aleja del jugador
+            case 2: // Huye del jugador
                 {
-                    Vector3 fleeDirection = (transform.position - target.position).normalized;
-                    if (fleeDirection != Vector3.zero)
+                    if (agent != null)
                     {
-                        Quaternion targetRotation = Quaternion.LookRotation(fleeDirection);
-                        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
+                        // Calcular la dirección de huida (contraria a la posición del jugador)
+                        Vector3 fleeDirection = (transform.position - target.position).normalized;
+                        // Definir una posición deseada a 10 unidades de distancia
+                        Vector3 desiredPosition = transform.position + fleeDirection * 10f;
+                        NavMeshHit hit;
+                        // Buscar una posición válida en el NavMesh
+                        if (NavMesh.SamplePosition(desiredPosition, out hit, 10f, NavMesh.AllAreas))
+                        {
+                            agent.SetDestination(hit.position);
+                        }
                     }
-                    transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                    else
+                    {
+                        Vector3 fleeDirection = (transform.position - target.position).normalized;
+                        if (fleeDirection != Vector3.zero)
+                        {
+                            Quaternion targetRotation = Quaternion.LookRotation(fleeDirection);
+                            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
+                        }
+                        transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                    }
                 }
                 break;
             default:
@@ -136,7 +180,7 @@ public class EnemyBase : MonoBehaviour
     }
 
     /// <summary>
-    /// Si el jugador está en rango, ataca usando su AttackRate como cooldown.
+    /// Ataca al jugador si está en rango, infligiendo daño y aplicando efectos únicos.
     /// </summary>
     void Atacar()
     {
@@ -145,7 +189,6 @@ public class EnemyBase : MonoBehaviour
         float distance = Vector3.Distance(transform.position, target.position);
         if (distance <= attackRange && Time.time >= nextAttackTime)
         {
-            // Registrar el daño infligido, sin importar la invulnerabilidad del jugador
             totalDamageInflicted += attackPower;
 
             PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
@@ -154,7 +197,6 @@ public class EnemyBase : MonoBehaviour
                 playerHealth.TakeDamage((int)attackPower);
                 Debug.Log("Enemigo ataca al jugador, causando " + attackPower + " de daño.");
 
-                // Aplicar efecto único si corresponde
                 if (uniqueEffect != UniqueEffect.None)
                 {
                     playerHealth.ApplyUniqueEffect(uniqueEffect);
@@ -163,7 +205,6 @@ public class EnemyBase : MonoBehaviour
             nextAttackTime = Time.time + attackRate;
         }
     }
-
 
     /// <summary>
     /// Aplica daño al enemigo y verifica si debe morir.
