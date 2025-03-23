@@ -84,8 +84,19 @@ public class EnemyGenerator : MonoBehaviour
                 return hp * atk * (1f / rate);
             case 4:
                 return Mathf.Sqrt(hp * atk) + (5f / rate) + extra;
+            case 5:
+                return (hp / rate) + atk + extra;
+            case 6:
+                return atk * (10f / rate) + extra;
+            case 7:
+                return (hp * 0.75f) + (atk * 0.5f) + (1f / rate) * 2 + extra;
+            case 8:
+                return Mathf.Pow(atk, 1.5f) * (1f / rate) + extra;
+            case 9:
+                return (atk + extra) * rate + hp * 0.3f;
             default:
                 return hp + atk;
+                
         }
     }
 

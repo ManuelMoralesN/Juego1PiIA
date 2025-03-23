@@ -1,7 +1,7 @@
 using UnityEngine;
-using UnityEngine.AI; // Necesario para usar NavMeshAgent
+using UnityEngine.AI; 
 
-// Enum para definir los efectos únicos disponibles
+// Enum para definir los efectos
 public enum UniqueEffect
 {
     None,
@@ -49,13 +49,13 @@ public class EnemyBase : MonoBehaviour
 
         if (rend == null)
         {
-            // Busca un Renderer en el objeto o sus hijos
+            // Busca un Renderer 
             rend = GetComponentInChildren<Renderer>();
             if (rend == null)
                 Debug.LogWarning("No se encontró un Renderer en el enemigo.");
         }
 
-        // Intentar obtener el componente NavMeshAgent
+        //NavMeshAgent
         agent = GetComponent<NavMeshAgent>();
         if (agent != null)
             agent.speed = moveSpeed;
