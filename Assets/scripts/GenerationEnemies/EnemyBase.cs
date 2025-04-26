@@ -72,9 +72,6 @@ public class EnemyBase : MonoBehaviour
         Atacar();
     }
 
-    /// <summary>
-    /// Inicializa los stats del enemigo.
-    /// </summary>
     public void InicializarStats(float hp, float atk, float rate, float speed, int movimiento, UniqueEffect effect)
     {
         maxHP = hp;
@@ -89,12 +86,6 @@ public class EnemyBase : MonoBehaviour
             agent.speed = moveSpeed;
     }
 
-    /// <summary>
-    /// Establece la dificultad calculada y cambia el color según su valor.
-    /// - Mayor a 100: rojo
-    /// - Mayor a 50: amarillo
-    /// - 50 o menor: verde
-    /// </summary>
     public void SetDificultad(float valor)
     {
         dificultadCalculada = valor;
@@ -110,13 +101,6 @@ public class EnemyBase : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Movimiento del enemigo según su tipo:
-    /// - 0: No se mueve.
-    /// - 1: Persigue al jugador.
-    /// - 2: Huye del jugador usando NavMesh (si está disponible).
-    /// Además, activa la animación de correr si el enemigo se está moviendo.
-    /// </summary>
     void Mover()
     {
         if (target == null) return;
@@ -152,9 +136,7 @@ public class EnemyBase : MonoBehaviour
                 {
                     if (agent != null)
                     {
-                        // Calcular la dirección de huida (contraria a la posición del jugador)
                         Vector3 fleeDirection = (transform.position - target.position).normalized;
-                        // Definir una posición deseada a 10 unidades de distancia
                         Vector3 desiredPosition = transform.position + fleeDirection * 10f;
                         NavMeshHit hit;
                         if (NavMesh.SamplePosition(desiredPosition, out hit, 10f, NavMesh.AllAreas))
@@ -180,15 +162,10 @@ public class EnemyBase : MonoBehaviour
                 break;
         }
 
-        // Activar la animación de correr si el enemigo se está moviendo
         if (animator != null)
             animator.SetBool("IsRunning", isMoving);
     }
 
-    /// <summary>
-    /// Ataca al jugador si está en rango, infligiendo daño y aplicando efectos únicos.
-    /// Además, activa la animación de ataque.
-    /// </summary>
     void Atacar()
     {
         if (target == null) return;
@@ -201,7 +178,6 @@ public class EnemyBase : MonoBehaviour
             PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
-                // Activar animación de ataque
                 if (animator != null)
                     animator.SetTrigger("AreaAttackTriggerA");
 
@@ -217,9 +193,6 @@ public class EnemyBase : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Aplica daño al enemigo y verifica si debe morir.
-    /// </summary>
     public void RecibirDaño(float daño)
     {
         currentHP -= daño;
@@ -229,11 +202,21 @@ public class EnemyBase : MonoBehaviour
             Morir();
     }
 
-    /// <summary>
-    /// Destruye el objeto enemigo.
-    /// </summary>
     void Morir()
     {
         Destroy(gameObject);
+    }
+
+    public float BalanceScore()
+    {
+        float normalizedSpeed = (moveSpeed - 1f) / (5f - 1f); // Asumiendo un rango de velocidad de 1 a 5
+        float normalizedDamage = (attackPower - 5f) / (30f - 5f); // Asumiendo un rango de daño de 5 a 30
+
+        return (normalizedSpeed + normalizedDamage) / 2;
+    }
+
+    public float TotalScore()
+    {
+        return dificultadCalculada * 0.7f + BalanceScore() * 0.3f;
     }
 }

@@ -5,17 +5,16 @@ public class EnemyStatsDisplay : MonoBehaviour
 {
     [Header("Referencias de UI")]
     public EnemyGenerator enemyGenerator;  // Referencia al generador de enemigos
-    public GameObject infoPanel;            // Panel de UI que contiene la información
-    public TMP_Text infoText;               // Componente TMP_Text para mostrar las estadísticas
+    public GameObject infoPanel;            // Panel de UI que contiene la informaciÃ³n
+    public TMP_Text infoText;               // Componente TMP_Text para mostrar las estadÃ­sticas
 
-    [Header("Configuración")]
+    [Header("ConfiguraciÃ³n")]
     public KeyCode toggleKey = KeyCode.Tab; // Tecla para mostrar/ocultar el panel
 
     private bool isVisible = true;
 
     void Update()
     {
-        // Alterna la visibilidad del panel al presionar la tecla asignada
         if (Input.GetKeyDown(toggleKey))
         {
             isVisible = !isVisible;
@@ -23,14 +22,12 @@ public class EnemyStatsDisplay : MonoBehaviour
                 infoPanel.SetActive(isVisible);
         }
 
-        // Obtener información del enemigo
         string infoEnemigo = "";
         if (enemyGenerator != null && enemyGenerator.CurrentEnemy != null)
         {
             EnemyBase enemigo = enemyGenerator.CurrentEnemy.GetComponent<EnemyBase>();
             if (enemigo != null)
             {
-                // Convertir el tipo de movimiento en texto descriptivo
                 string estadoMovimiento = "";
                 switch (enemigo.tipoMovimiento)
                 {
@@ -48,41 +45,43 @@ public class EnemyStatsDisplay : MonoBehaviour
                         break;
                 }
 
-                // Se utiliza attackPower como "Daño por golpe"
-                float dañoPorGolpe = enemigo.attackPower;
+                float daÃ±oPorGolpe = enemigo.attackPower;
 
-                infoEnemigo = $"<b><size=18>Estadísticas del Enemigo</size></b>\n" +
+                // AquÃ­ aÃ±adimos el nÃºmero de ronda, dificultad y balance a la UI
+                infoEnemigo = $"<b><size=18>EstadÃ­sticas del Enemigo</size></b>\n" +
+                              $"<color=white><b>Ronda:</b></color> {enemyGenerator.rondaActual}\n" + // Mostrar el nÃºmero de la ronda
                               $"<color=white><b>Vida:</b></color> {enemigo.maxHP:F1}\n" +
-                              $"<color=white><b>Daño:</b></color> {enemigo.attackPower:F1}\n" +
-                              $"<color=white><b>velocidad de Ataque:</b></color> {enemigo.attackRate:F2}\n" +
+                              $"<color=white><b>DaÃ±o:</b></color> {enemigo.attackPower:F1}\n" +
+                              $"<color=white><b>Velocidad de Ataque:</b></color> {enemigo.attackRate:F2}\n" +
                               $"<color=white><b>Velocidad:</b></color> {enemigo.moveSpeed:F1}\n" +
                               $"<color=white><b>Dificultad:</b></color> {enemigo.dificultadCalculada:F2}\n" +
-                              $"<color=white><b>Efecto Único:</b></color> {enemigo.uniqueEffect}\n" +
+                              $"<color=white><b>Efecto Ãšnico:</b></color> {enemigo.uniqueEffect}\n" +
                               $"<color=white><b>Movimiento:</b></color> {estadoMovimiento}\n" +
-                              $"<color=white><b>Daño por golpe:</b></color> {dañoPorGolpe:F1}\n" +
-                              $"<color=white><b>Daño Total:</b></color> {enemigo.totalDamageInflicted:F1}\n";
+                              // Mostrar los pesos de Dificultad y Balance
+                              $"<color=white><b>Peso de Dificultad:</b></color> {enemyGenerator.difficultyWeight:F2}\n" +
+                              $"<color=white><b>Peso de Balance:</b></color> {enemyGenerator.balanceWeight:F2}\n" +
+                              $"<color=white><b>DaÃ±o por golpe:</b></color> {daÃ±oPorGolpe:F1}\n" +
+                              $"<color=white><b>DaÃ±o Total:</b></color> {enemigo.totalDamageInflicted:F1}\n";
             }
         }
         else
         {
-            infoEnemigo = "<i>No se generó ningún enemigo.</i>\n";
+            infoEnemigo = "<i>No se generÃ³ ningÃºn enemigo.</i>\n";
         }
 
-        // Obtener información del jugador (PlayerHealth)
         string infoJugador = "";
         PlayerHealth jugador = FindObjectOfType<PlayerHealth>();
         if (jugador != null)
         {
-            infoJugador = $"<b><size=18>Estadísticas del Jugador</size></b>\n" +
+            infoJugador = $"<b><size=18>EstadÃ­sticas del Jugador</size></b>\n" +
                           $"<color=white><b>Vida:</b></color> {jugador.health:F1}\n" +
-                          $"<color=white><b>Modo Inmortal:</b></color> {(jugador.isImmortal ? "Sí" : "No")}\n";
+                          $"<color=white><b>Modo Inmortal:</b></color> {(jugador.isImmortal ? "SÃ­" : "No")}\n";
         }
         else
         {
-            infoJugador = "<i>No se encontró al jugador.</i>\n";
+            infoJugador = "<i>No se encontrÃ³ al jugador.</i>\n";
         }
 
-        // Combinar la información y actualizar el texto del panel
         infoText.text = infoEnemigo + "\n" + infoJugador;
     }
 }
