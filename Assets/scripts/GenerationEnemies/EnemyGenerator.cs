@@ -28,67 +28,71 @@ public class EnemyGenerator : MonoBehaviour
         get { return enemigoActual?.GetComponent<PcgEnemy>(); } // Retorna el último enemigo generado
     }
 
-    void Start()
-    {
-        // Generar enemigos iniciales
-        GenerarEnemigos(5); // Generar 5 enemigos de prueba
-        // Ejecutar GreedySearch
-        GreedySearch();
-    }
+    [Header("Configuración de Hordas")]
+    public int rondaActual = 1; // Ronda inicial
+    public int enemigosPorHorda = 1; // Número de enemigos por horda, comienza en 1
+    public int maxEnemigosPorHorda = 5; // Límite máximo de enemigos en una horda
+
+    private bool todosMuertos = true; // Estado que indica si todos los enemigos fueron eliminados
+    private List<PcgEnemy> enemigosEnHorda = new List<PcgEnemy>(); // Lista de enemigos de la horda actual
 
     void Update()
     {
-        if (Input.GetKeyDown(teclaReiniciar))
+        // Si todos los enemigos han muerto, iniciamos la siguiente horda
+        if (todosMuertos)
         {
-            Reiniciar();
+            // Generar enemigos para la nueva horda
+            GenerarHorda(rondaActual);
         }
     }
 
-    // Función para generar varios enemigos
-    public void GenerarEnemigos(int cantidad)
+    // Función para generar los enemigos de la horda
+    public void GenerarHorda(int ronda)
     {
-        for (int i = 0; i < cantidad; i++)
+        enemigosEnHorda.Clear(); // Limpiamos la lista de enemigos de la horda actual
+
+        // Determinamos el número de enemigos según la ronda
+        enemigosPorHorda = Mathf.Min(maxEnemigosPorHorda, ronda); // La cantidad de enemigos aumenta pero no supera el límite
+
+        // Generar enemigos para esta horda
+        for (int i = 0; i < enemigosPorHorda; i++)
         {
-            GenerarEnemigo();
+            GenerarEnemigo(ronda); // Generar un enemigo por vez
         }
+
+        todosMuertos = false; // Aún no han muerto todos los enemigos
     }
 
-    // Generar un solo enemigo
-    public void GenerarEnemigo()
+    // Función para generar un solo enemigo con dificultad ajustada según la ronda
+    public void GenerarEnemigo(int ronda)
     {
         if (enemyPrefab == null || spawnPoint == null) return;
 
         // Instanciar enemigo en el punto de spawn
         enemigoActual = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
-
         PcgEnemy enemy = enemigoActual.GetComponent<PcgEnemy>();
 
         if (enemy != null)
         {
-            // Generar stats aleatorios
-            float hp = Random.Range(hpRange.x, hpRange.y);
-            float atk = Random.Range(attackRange.x, attackRange.y);
-            float rate = Random.Range(attackRateRange.x, attackRateRange.y);
-            float speed = Random.Range(speedRange.x, speedRange.y);
-            int movimiento = Random.Range(0, 3); // 0: quieto, 1: sigue, 2: huye
+            // Ajustamos las estadísticas del enemigo para la ronda actual
+            enemy.DifficultyWeight = Mathf.Clamp01(ronda / 10f); // Aumento gradual de la dificultad con las rondas
+            enemy.GeneratePcgEnemy(); // Generar el enemigo con nuevas estadísticas
 
-            // Generar efecto aleatorio: se elige entre None (0), Slow (1), Burn (2) y Stun (3)
-            UniqueEffect effect = (UniqueEffect)Random.Range(0, 4);
-
-            // Llamar a la inicialización de estadísticas del enemigo
-            enemy.InicializarStats(hp, atk, rate, speed, movimiento, effect);
-
-            // Calcular la dificultad según la función seleccionada
-            float dificultad = CalcularDificultad(enemy);
-            enemy.SetDificultad(dificultad);
-
-            // Calcular el TotalScore
-            float totalScore = enemy.CalculateTotalScore();
-            Debug.Log("Total Score del enemigo: " + totalScore);
-
-            // Agregar enemigo a la lista
-            enemigos.Add(enemy);
+            // Agregamos el enemigo a la lista
+            enemigosEnHorda.Add(enemy);
         }
+    }
+
+    // Función para verificar si todos los enemigos fueron eliminados
+    public void VerificarMuerteEnemigos()
+    {
+        todosMuertos = enemigosEnHorda.TrueForAll(e => e.isDead); // Verificar si todos los enemigos están muertos
+    }
+
+    // Llamar esta función cuando todos los enemigos sean derrotados para avanzar a la siguiente ronda
+    public void EnemigosEliminados()
+    {
+        VerificarMuerteEnemigos();
     }
 
     // Método para calcular la dificultad
@@ -178,6 +182,6 @@ public class EnemyGenerator : MonoBehaviour
         }
 
         // Generar un nuevo enemigo
-        GenerarEnemigo();
+        GenerarEnemigo(rondaActual);
     }
 }
