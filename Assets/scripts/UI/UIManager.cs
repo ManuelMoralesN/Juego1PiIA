@@ -5,51 +5,84 @@ using UnityEngine.UI;
 
 public class UIManager : MonoBehaviour
 {
+    [Header("Referencias de UI")]
     public GameObject gameOverUI;  // Canvas de Game Over
     public GameObject victoryUI;   // Canvas de Victoria
-    public float delayBeforeGameOver = 2f;  // Tiempo en segundos antes de mostrar el Game Over
+
+    [Header("Configuraci√≥n de Delays")]
+    public float delayBeforeGameOver = 2f;  // Tiempo en segundos antes de mostrar Game Over
     public float delayBeforeVictory = 2f;   // Tiempo en segundos antes de mostrar Victoria
 
-    void Start()
+    private void Start()
     {
-        gameOverUI.SetActive(false);  // Asegurarse de que la UI de Game Over estÈ desactivada al iniciar
-        victoryUI.SetActive(false);   // Asegurarse de que la UI de Victoria estÈ desactivada al iniciar
+        // Verificar que las referencias de UI est√©n asignadas
+        if (gameOverUI == null) Debug.LogError("UIManager: No hay un Game Over UI asignado.");
+        if (victoryUI == null) Debug.LogError("UIManager: No hay un Victory UI asignado.");
+
+        // Asegurarse de que las pantallas est√©n desactivadas al inicio
+        gameOverUI?.SetActive(false);
+        victoryUI?.SetActive(false);
     }
 
-    // MÈtodo para mostrar la pantalla de Game Over
+    /// <summary>
+    /// Muestra la pantalla de Game Over.
+    /// </summary>
     public void ShowGameOver()
     {
         StartCoroutine(ShowGameOverUICoroutine());
     }
 
-    // Corutina para esperar antes de mostrar la pantalla de Game Over
-    IEnumerator ShowGameOverUICoroutine()
+    private IEnumerator ShowGameOverUICoroutine()
     {
-        yield return new WaitForSeconds(delayBeforeGameOver);
-        Time.timeScale = 0f;  // Congelar el tiempo
+        yield return new WaitForSecondsRealtime(delayBeforeGameOver);
 
-        gameOverUI.SetActive(true);
+        if (gameOverUI != null)
+        {
+            gameOverUI.SetActive(true);
+            yield return new WaitForSecondsRealtime(0.2f); // Peque√±o delay para que se dibuje la UI
+            Time.timeScale = 0f; // Congelar el juego
+        }
     }
 
-    // MÈtodo para mostrar la pantalla de Victoria
+    /// <summary>
+    /// Muestra la pantalla de Victoria.
+    /// </summary>
     public void ShowVictory()
     {
         StartCoroutine(ShowVictoryUICoroutine());
     }
 
-    // Corutina para esperar antes de mostrar la pantalla de Victoria
-    IEnumerator ShowVictoryUICoroutine()
+    private IEnumerator ShowVictoryUICoroutine()
     {
-        yield return new WaitForSeconds(delayBeforeVictory);
-        victoryUI.SetActive(true);  // Activar la UI de victoria antes de detener el tiempo
-        yield return new WaitForSeconds(0.5f); // Dar tiempo para que la pantalla de victoria se vea correctamente
-        Time.timeScale = 0f;  // Congelar el tiempo
+        yield return new WaitForSecondsRealtime(delayBeforeVictory);
+
+        if (victoryUI != null)
+        {
+            victoryUI.SetActive(true);
+            yield return new WaitForSecondsRealtime(0.2f); // Peque√±o delay para que se dibuje la UI
+            Time.timeScale = 0f; // Congelar el juego
+        }
     }
 
-    // MÈtodo para reiniciar el nivel cuando se presiona el botÛn de reinicio
+    /// <summary>
+    /// Reinicia el nivel actual.
+    /// </summary>
     public void RestartLevel()
     {
-        Time.timeScale = 1f;  // Restablecer el tiempo
-        SceneManager.LoadScene(SceneManager.GetActiveScene().name);  // Reiniciar la escena actual
+        Time.timeScale = 1f; // Asegurar que el tiempo est√© activo
+        SceneManager.LoadScene(SceneManager.GetActiveScene().name); // Recargar escena
+    }
+
+    /// <summary>
+    /// Opcional: Salir del juego.
+    /// </summary>
+    public void QuitGame()
+    {
+        Time.timeScale = 1f; // Asegurar que el tiempo est√© activo
+#if UNITY_EDITOR
+        UnityEditor.EditorApplication.isPlaying = false; // Para editor
+#else
+        Application.Quit(); // Para build
+#endif
     }
 }

@@ -182,6 +182,11 @@ public class PlayerHealth : MonoBehaviour
         Debug.Log("El jugador ha muerto");
         animator.SetTrigger("Die");
         GetComponent<PlayerMovement>().enabled = false;
+        // MOSTRAR GAME OVER
+    if (uiManager != null)
+    {
+        uiManager.ShowGameOver();
+    }
     }
 
     /// <summary>
