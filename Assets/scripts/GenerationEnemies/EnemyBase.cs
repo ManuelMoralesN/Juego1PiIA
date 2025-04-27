@@ -1,5 +1,5 @@
 using UnityEngine;
-using UnityEngine.AI; 
+using UnityEngine.AI;
 
 // Enum para definir los efectos
 public enum UniqueEffect
@@ -13,14 +13,9 @@ public enum UniqueEffect
 public class EnemyBase : MonoBehaviour
 {
     [Header("Stats del Enemigo")]
-    public float maxHP;
-    public float currentHP;
-    public float attackPower;
-    public float attackRate; // Intervalo de ataque en segundos
-    public float moveSpeed;
+    public EnemyStats stats = new EnemyStats(); // Usamos la clase EnemyStats para manejar las estadísticas
 
     [Header("Evaluación")]
-    public float dificultadCalculada;
     public int tipoMovimiento; // 0: quieto, 1: persigue, 2: huye
 
     [Header("Efecto Único")]
@@ -40,7 +35,7 @@ public class EnemyBase : MonoBehaviour
 
     void Start()
     {
-        currentHP = maxHP;
+        stats.currentHP = stats.maxHP; // Inicializamos la salud del enemigo
         GameObject playerObj = GameObject.FindWithTag("Player");
         if (playerObj != null)
             target = playerObj.transform;
@@ -58,7 +53,7 @@ public class EnemyBase : MonoBehaviour
         //NavMeshAgent
         agent = GetComponent<NavMeshAgent>();
         if (agent != null)
-            agent.speed = moveSpeed;
+            agent.speed = stats.movementSpeed;
 
         // Obtener el Animator (se espera que esté en el mismo GameObject o en un hijo)
         animator = GetComponent<Animator>();
@@ -77,27 +72,25 @@ public class EnemyBase : MonoBehaviour
     /// </summary>
     public void InicializarStats(float hp, float atk, float rate, float speed, int movimiento, UniqueEffect effect)
     {
-        maxHP = hp;
-        attackPower = atk;
-        attackRate = rate;
-        moveSpeed = speed;
+        stats.maxHP = hp;
+        stats.attackDamage = atk;
+        stats.attackRate = rate;
+        stats.movementSpeed = speed;
+        stats.attackRange = 2f;
         tipoMovimiento = movimiento;
         uniqueEffect = effect;
-        currentHP = maxHP;
+        stats.currentHP = stats.maxHP;
 
         if (agent != null)
-            agent.speed = moveSpeed;
+            agent.speed = stats.movementSpeed;
     }
 
     /// <summary>
     /// Establece la dificultad calculada y cambia el color según su valor.
-    /// - Mayor a 100: rojo
-    /// - Mayor a 50: amarillo
-    /// - 50 o menor: verde
     /// </summary>
     public void SetDificultad(float valor)
     {
-        dificultadCalculada = valor;
+        stats.difficultyValue = valor;
         Debug.Log("Dificultad calculada: " + valor);
         if (rend != null)
         {
@@ -111,11 +104,7 @@ public class EnemyBase : MonoBehaviour
     }
 
     /// <summary>
-    /// Movimiento del enemigo según su tipo:
-    /// - 0: No se mueve.
-    /// - 1: Persigue al jugador.
-    /// - 2: Huye del jugador usando NavMesh (si está disponible).
-    /// Además, activa la animación de correr si el enemigo se está moviendo.
+    /// Movimiento del enemigo según su tipo.
     /// </summary>
     void Mover()
     {
@@ -143,7 +132,7 @@ public class EnemyBase : MonoBehaviour
                             Quaternion targetRotation = Quaternion.LookRotation(direction);
                             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
                         }
-                        transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                        transform.position += transform.forward * stats.movementSpeed * Time.deltaTime;
                         isMoving = true;
                     }
                 }
@@ -152,9 +141,7 @@ public class EnemyBase : MonoBehaviour
                 {
                     if (agent != null)
                     {
-                        // Calcular la dirección de huida (contraria a la posición del jugador)
                         Vector3 fleeDirection = (transform.position - target.position).normalized;
-                        // Definir una posición deseada a 10 unidades de distancia
                         Vector3 desiredPosition = transform.position + fleeDirection * 10f;
                         NavMeshHit hit;
                         if (NavMesh.SamplePosition(desiredPosition, out hit, 10f, NavMesh.AllAreas))
@@ -171,7 +158,7 @@ public class EnemyBase : MonoBehaviour
                             Quaternion targetRotation = Quaternion.LookRotation(fleeDirection);
                             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, 5f * Time.deltaTime);
                         }
-                        transform.position += transform.forward * moveSpeed * Time.deltaTime;
+                        transform.position += transform.forward * stats.movementSpeed * Time.deltaTime;
                         isMoving = true;
                     }
                 }
@@ -187,33 +174,31 @@ public class EnemyBase : MonoBehaviour
 
     /// <summary>
     /// Ataca al jugador si está en rango, infligiendo daño y aplicando efectos únicos.
-    /// Además, activa la animación de ataque.
     /// </summary>
     void Atacar()
     {
         if (target == null) return;
 
         float distance = Vector3.Distance(transform.position, target.position);
-        if (distance <= attackRange && Time.time >= nextAttackTime)
+        if (distance <= stats.attackRange && Time.time >= nextAttackTime)
         {
-            totalDamageInflicted += attackPower;
+            totalDamageInflicted += stats.attackDamage;
 
             PlayerHealth playerHealth = target.GetComponent<PlayerHealth>();
             if (playerHealth != null)
             {
-                // Activar animación de ataque
                 if (animator != null)
                     animator.SetTrigger("AreaAttackTriggerA");
 
-                playerHealth.TakeDamage((int)attackPower);
-                Debug.Log("Enemigo ataca al jugador, causando " + attackPower + " de daño.");
+                playerHealth.TakeDamage((int)stats.attackDamage);
+                Debug.Log("Enemigo ataca al jugador, causando " + stats.attackDamage + " de daño.");
 
                 if (uniqueEffect != UniqueEffect.None)
                 {
                     playerHealth.ApplyUniqueEffect(uniqueEffect);
                 }
             }
-            nextAttackTime = Time.time + attackRate;
+            nextAttackTime = Time.time + stats.attackRate;
         }
     }
 
@@ -222,10 +207,10 @@ public class EnemyBase : MonoBehaviour
     /// </summary>
     public void RecibirDaño(float daño)
     {
-        currentHP -= daño;
-        Debug.Log("Enemigo ha recibido " + daño + " puntos de daño. Vida restante: " + currentHP);
+        stats.currentHP -= daño;
+        Debug.Log("Enemigo ha recibido " + daño + " puntos de daño. Vida restante: " + stats.currentHP);
 
-        if (currentHP <= 0)
+        if (stats.currentHP <= 0)
             Morir();
     }
 

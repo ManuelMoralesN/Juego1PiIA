@@ -1,5 +1,5 @@
 using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 
 public class EnemyGenerator : MonoBehaviour
 {
@@ -20,12 +20,20 @@ public class EnemyGenerator : MonoBehaviour
     public Vector2 attackRateRange = new Vector2(0.2f, 2f);
     public Vector2 speedRange = new Vector2(1f, 5f);
 
+    private List<PcgEnemy> enemigos = new List<PcgEnemy>(); // Lista de enemigos generados
     private GameObject enemigoActual;
-    public GameObject CurrentEnemy { get { return enemigoActual; } }
+
+    public PcgEnemy CurrentEnemy
+    {
+        get { return enemigoActual?.GetComponent<PcgEnemy>(); } // Retorna el último enemigo generado
+    }
 
     void Start()
     {
-        GenerarEnemigo();
+        // Generar enemigos iniciales
+        GenerarEnemigos(5); // Generar 5 enemigos de prueba
+        // Ejecutar GreedySearch
+        GreedySearch();
     }
 
     void Update()
@@ -36,6 +44,16 @@ public class EnemyGenerator : MonoBehaviour
         }
     }
 
+    // Función para generar varios enemigos
+    public void GenerarEnemigos(int cantidad)
+    {
+        for (int i = 0; i < cantidad; i++)
+        {
+            GenerarEnemigo();
+        }
+    }
+
+    // Generar un solo enemigo
     public void GenerarEnemigo()
     {
         if (enemyPrefab == null || spawnPoint == null) return;
@@ -43,7 +61,7 @@ public class EnemyGenerator : MonoBehaviour
         // Instanciar enemigo en el punto de spawn
         enemigoActual = Instantiate(enemyPrefab, spawnPoint.position, Quaternion.identity);
 
-        EnemyBase enemy = enemigoActual.GetComponent<EnemyBase>();
+        PcgEnemy enemy = enemigoActual.GetComponent<PcgEnemy>();
 
         if (enemy != null)
         {
@@ -53,24 +71,33 @@ public class EnemyGenerator : MonoBehaviour
             float rate = Random.Range(attackRateRange.x, attackRateRange.y);
             float speed = Random.Range(speedRange.x, speedRange.y);
             int movimiento = Random.Range(0, 3); // 0: quieto, 1: sigue, 2: huye
+
             // Generar efecto aleatorio: se elige entre None (0), Slow (1), Burn (2) y Stun (3)
             UniqueEffect effect = (UniqueEffect)Random.Range(0, 4);
 
+            // Llamar a la inicialización de estadísticas del enemigo
             enemy.InicializarStats(hp, atk, rate, speed, movimiento, effect);
 
             // Calcular la dificultad según la función seleccionada
             float dificultad = CalcularDificultad(enemy);
             enemy.SetDificultad(dificultad);
+
+            // Calcular el TotalScore
+            float totalScore = enemy.CalculateTotalScore();
+            Debug.Log("Total Score del enemigo: " + totalScore);
+
+            // Agregar enemigo a la lista
+            enemigos.Add(enemy);
         }
     }
 
-    float CalcularDificultad(EnemyBase enemy)
+    // Método para calcular la dificultad
+    float CalcularDificultad(PcgEnemy enemy)
     {
-        float hp = enemy.maxHP;
-        float atk = enemy.attackPower;
-        float rate = enemy.attackRate;
-        // Si tiene efecto, se añade un extra
-        float extra = enemy.uniqueEffect != UniqueEffect.None ? 10f : 0f;
+        float hp = enemy.stats.maxHP;
+        float atk = enemy.stats.attackDamage;
+        float rate = enemy.stats.attackRate;
+        float extra = enemy.uniqueEffect != UniqueEffect.None ? 10f : 0f;  // Se accede a uniqueEffect desde PcgEnemy
 
         switch (funcionDeDificultad)
         {
@@ -96,10 +123,40 @@ public class EnemyGenerator : MonoBehaviour
                 return (atk + extra) * rate + hp * 0.3f;
             default:
                 return hp + atk;
-                
         }
     }
 
+    // Implementación de GreedySearch
+    public void GreedySearch()
+    {
+        PcgEnemy bestEnemy = null;
+        float bestScore = float.MinValue; // Inicializamos con el valor más bajo posible
+
+        // Recorremos la lista de enemigos y evaluamos el TotalScore
+        foreach (PcgEnemy enemigo in enemigos)
+        {
+            float totalScore = enemigo.CalculateTotalScore();  // Obtenemos el TotalScore del enemigo
+
+            // Si el TotalScore es el mejor hasta ahora, lo guardamos
+            if (totalScore > bestScore)
+            {
+                bestScore = totalScore;
+                bestEnemy = enemigo;
+            }
+        }
+
+        // Mostrar el mejor enemigo
+        if (bestEnemy != null)
+        {
+            Debug.Log("El mejor enemigo es: " + bestEnemy.name + " con un TotalScore de: " + bestScore);
+        }
+        else
+        {
+            Debug.Log("No se encontraron enemigos.");
+        }
+    }
+
+    // Método para reiniciar el juego
     void Reiniciar()
     {
         // Destruir el enemigo actual
@@ -123,5 +180,4 @@ public class EnemyGenerator : MonoBehaviour
         // Generar un nuevo enemigo
         GenerarEnemigo();
     }
-
 }

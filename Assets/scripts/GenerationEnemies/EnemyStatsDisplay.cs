@@ -27,12 +27,12 @@ public class EnemyStatsDisplay : MonoBehaviour
         string infoEnemigo = "";
         if (enemyGenerator != null && enemyGenerator.CurrentEnemy != null)
         {
-            EnemyBase enemigo = enemyGenerator.CurrentEnemy.GetComponent<EnemyBase>();
+            PcgEnemy enemigo = enemyGenerator.CurrentEnemy;  // Accedemos al enemigo actual desde EnemyGenerator
             if (enemigo != null)
             {
                 // Convertir el tipo de movimiento en texto descriptivo
                 string estadoMovimiento = "";
-                switch (enemigo.tipoMovimiento)
+                switch (enemigo.tipoMovimiento)  // Acceder a tipoMovimiento desde EnemyBase
                 {
                     case 0:
                         estadoMovimiento = "Quieto";
@@ -48,16 +48,17 @@ public class EnemyStatsDisplay : MonoBehaviour
                         break;
                 }
 
-                // Se utiliza attackPower como "Daño por golpe"
-                float dañoPorGolpe = enemigo.attackPower;
+                // Se utiliza attackDamage como "Daño por golpe"
+                float dañoPorGolpe = enemigo.stats.attackDamage;
 
+                // Componer la información del enemigo
                 infoEnemigo = $"<b><size=18>Estadísticas del Enemigo</size></b>\n" +
-                              $"<color=white><b>Vida:</b></color> {enemigo.maxHP:F1}\n" +
-                              $"<color=white><b>Daño:</b></color> {enemigo.attackPower:F1}\n" +
-                              $"<color=white><b>velocidad de Ataque:</b></color> {enemigo.attackRate:F2}\n" +
-                              $"<color=white><b>Velocidad:</b></color> {enemigo.moveSpeed:F1}\n" +
-                              $"<color=white><b>Dificultad:</b></color> {enemigo.dificultadCalculada:F2}\n" +
-                              $"<color=white><b>Efecto Único:</b></color> {enemigo.uniqueEffect}\n" +
+                              $"<color=white><b>Vida:</b></color> {enemigo.stats.maxHP:F1}\n" +
+                              $"<color=white><b>Daño:</b></color> {enemigo.stats.attackDamage:F1}\n" +
+                              $"<color=white><b>Velocidad de Ataque:</b></color> {enemigo.stats.attackRate:F2}\n" +
+                              $"<color=white><b>Velocidad:</b></color> {enemigo.stats.movementSpeed:F1}\n" +
+                              $"<color=white><b>Dificultad:</b></color> {enemigo.stats.difficultyValue:F2}\n" +
+                              $"<color=white><b>Efecto Único:</b></color> {enemigo.uniqueEffect}\n" +  // Acceder a uniqueEffect desde EnemyBase
                               $"<color=white><b>Movimiento:</b></color> {estadoMovimiento}\n" +
                               $"<color=white><b>Daño por golpe:</b></color> {dañoPorGolpe:F1}\n" +
                               $"<color=white><b>Daño Total:</b></color> {enemigo.totalDamageInflicted:F1}\n";
@@ -82,7 +83,8 @@ public class EnemyStatsDisplay : MonoBehaviour
             infoJugador = "<i>No se encontró al jugador.</i>\n";
         }
 
-        // Combinar la información y actualizar el texto del panel
+        // Combinar la información del enemigo y del jugador y actualizar el texto del panel
         infoText.text = infoEnemigo + "\n" + infoJugador;
     }
+
 }
